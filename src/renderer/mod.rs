@@ -8,6 +8,9 @@ use winit::window::Window;
 
 use gbuffer::GBuffer;
 
+const LAYERS: u32 = 4;
+const RENDER_STATE: passes::RenderState = passes::RenderState::Combine;
+
 pub struct Renderer {
     pub window: Arc<Window>,
     device: wgpu::Device,
@@ -16,14 +19,16 @@ pub struct Renderer {
     config: wgpu::SurfaceConfiguration,
     gbuffer: GBuffer,
     geometry_pass: passes::Geometry,
+    composite_pass: passes::Composite,
 }
 
 impl Renderer {
     pub async fn new(window: Arc<Window>) -> Self {
         let (device, queue, surface, config) = device::init_wgpu(window.clone()).await;
 
-        let gbuffer = GBuffer::new(&device, config.width, config.height);
+        let gbuffer = GBuffer::new(&device, config.width, config.height, LAYERS);
         let geometry_pass = passes::Geometry::new(&device, &gbuffer);
+        let composite_pass = passes::Composite::new(&device, config.format, &gbuffer, RENDER_STATE);
 
         Self {
             window,
@@ -33,6 +38,7 @@ impl Renderer {
             config,
             gbuffer,
             geometry_pass,
+            composite_pass,
         }
     }
 
@@ -42,7 +48,8 @@ impl Renderer {
 
         let mut encoder = self.device.create_command_encoder(&Default::default());
 
-        self.geometry_pass.execute(&mut encoder, &self.gbuffer, &view);
+        { self.geometry_pass.execute(&mut encoder, &self.gbuffer, 1); }
+        { self.composite_pass.execute(&mut encoder, &mut self.queue, &view); }
 
         self.queue.submit(Some(encoder.finish()));
         frame.present();
@@ -57,7 +64,8 @@ impl Renderer {
         self.config.height = height;
         self.surface.configure(&self.device, &self.config);
 
-        self.gbuffer = GBuffer::new(&self.device, width, height);
+        self.gbuffer = GBuffer::new(&self.device, width, height, LAYERS);
         self.geometry_pass = passes::Geometry::new(&self.device, &self.gbuffer);
+        self.composite_pass = passes::Composite::new(&self.device, self.config.format, &self.gbuffer, RENDER_STATE);
     }
 }

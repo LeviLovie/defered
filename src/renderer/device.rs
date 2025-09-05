@@ -2,7 +2,14 @@ use std::sync::Arc;
 
 use winit::window::Window;
 
-pub async fn init_wgpu(window: Arc<Window>) -> (wgpu::Device, wgpu::Queue, wgpu::Surface<'static>, wgpu::SurfaceConfiguration) {
+pub async fn init_wgpu(
+    window: Arc<Window>,
+) -> (
+    wgpu::Device,
+    wgpu::Queue,
+    wgpu::Surface<'static>,
+    wgpu::SurfaceConfiguration,
+) {
     let size = window.inner_size();
 
     let instance = wgpu::Instance::default();

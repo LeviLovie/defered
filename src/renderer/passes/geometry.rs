@@ -30,7 +30,7 @@ impl Geometry {
                 module: &shader,
                 entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
-                    format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                    format: gbuffer.format,
                     blend: Some(wgpu::BlendState::REPLACE),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
@@ -52,16 +52,12 @@ impl Geometry {
         Self { pipeline }
     }
 
-    pub fn execute(
-        &self,
-        encoder: &mut wgpu::CommandEncoder,
-        gbuffer: &GBuffer,
-        view: &wgpu::TextureView,
-    ) {
+    pub fn execute(&self, encoder: &mut wgpu::CommandEncoder, gbuffer: &GBuffer, layer: usize) {
+        let view = &gbuffer.views[layer];
+
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Geometry Pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                // view: &gbuffer.color,
                 view,
                 resolve_target: None,
                 ops: wgpu::Operations {
