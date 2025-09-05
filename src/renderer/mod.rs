@@ -1,15 +1,17 @@
-mod passes;
 mod device;
 mod gbuffer;
+pub mod object;
+mod passes;
 
 use std::sync::Arc;
 
+use object::Object;
 use winit::window::Window;
 
 use gbuffer::GBuffer;
 
 const LAYERS: u32 = 4;
-const RENDER_STATE: passes::RenderState = passes::RenderState::Combine;
+const RENDER_STATE: passes::RenderState = passes::RenderState::Grid;
 
 pub struct Renderer {
     pub window: Arc<Window>,
@@ -42,14 +44,20 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self) {
+    pub fn render(&mut self, objects: Vec<Object>) {
         let frame = self.surface.get_current_texture().unwrap();
         let view = frame.texture.create_view(&Default::default());
 
         let mut encoder = self.device.create_command_encoder(&Default::default());
 
-        { self.geometry_pass.execute(&mut encoder, &self.gbuffer, 1); }
-        { self.composite_pass.execute(&mut encoder, &mut self.queue, &view); }
+        {
+            self.geometry_pass
+                .execute(&mut encoder, &self.gbuffer, &objects, &self.device);
+        }
+        {
+            self.composite_pass
+                .execute(&mut encoder, &mut self.queue, &view);
+        }
 
         self.queue.submit(Some(encoder.finish()));
         frame.present();
@@ -66,6 +74,11 @@ impl Renderer {
 
         self.gbuffer = GBuffer::new(&self.device, width, height, LAYERS);
         self.geometry_pass = passes::Geometry::new(&self.device, &self.gbuffer);
-        self.composite_pass = passes::Composite::new(&self.device, self.config.format, &self.gbuffer, RENDER_STATE);
+        self.composite_pass = passes::Composite::new(
+            &self.device,
+            self.config.format,
+            &self.gbuffer,
+            RENDER_STATE,
+        );
     }
 }

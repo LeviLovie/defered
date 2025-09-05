@@ -1,9 +1,10 @@
-use wgpu::PipelineCompilationOptions;
+use wgpu::{util::DeviceExt, PipelineCompilationOptions};
 
-use crate::renderer::gbuffer::GBuffer;
+use crate::renderer::{gbuffer::GBuffer, object::Object};
 
 pub struct Geometry {
     pipeline: wgpu::RenderPipeline,
+    object_bind_layout: wgpu::BindGroupLayout,
 }
 
 impl Geometry {
@@ -11,9 +12,24 @@ impl Geometry {
         let shader =
             device.create_shader_module(wgpu::include_wgsl!("../../shaders/geomtery.wgsl"));
 
+        let object_bind_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Object Bind Group Layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }],
+            });
+
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Geometry Pipeline Layout"),
-            bind_group_layouts: &[],
+            bind_group_layouts: &[&object_bind_layout],
             push_constant_ranges: &[],
         });
 
@@ -49,35 +65,61 @@ impl Geometry {
             cache: None,
         });
 
-        Self { pipeline }
+        Self {
+            pipeline,
+            object_bind_layout,
+        }
     }
 
-    pub fn execute(&self, encoder: &mut wgpu::CommandEncoder, gbuffer: &GBuffer, layer: usize) {
-        let view = &gbuffer.views[layer];
-
-        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Geometry Pass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                    store: wgpu::StoreOp::Store,
-                },
-                depth_slice: None,
-            })],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: &gbuffer.depth,
-                depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(1.0),
-                    store: wgpu::StoreOp::Store,
-                }),
-                stencil_ops: None,
-            }),
-            ..Default::default()
+    pub fn execute(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        gbuffer: &GBuffer,
+        objects: &[Object],
+        device: &wgpu::Device,
+    ) {
+        let object_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Object Buffer"),
+            contents: bytemuck::cast_slice(objects),
+            usage: wgpu::BufferUsages::STORAGE,
         });
 
-        rpass.set_pipeline(&self.pipeline);
-        rpass.draw(0..3, 0..1);
+        let object_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Object Bind Group"),
+            layout: &self.object_bind_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: object_buffer.as_entire_binding(),
+            }],
+        });
+
+        for layer in 0..gbuffer.layers {
+            let view = &gbuffer.views[layer as usize];
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Geometry Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: wgpu::StoreOp::Store,
+                    },
+                    depth_slice: None,
+                })],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &gbuffer.depth,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
+                ..Default::default()
+            });
+
+            rpass.set_pipeline(&self.pipeline);
+            rpass.set_bind_group(0, &object_bind_group, &[]);
+            rpass.draw(0..3, 0..1);
+        }
     }
 }
