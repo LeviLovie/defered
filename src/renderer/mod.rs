@@ -11,6 +11,7 @@ use winit::window::Window;
 use gbuffer::GBuffer;
 
 const LAYERS: u32 = 4;
+const COMPOSITE_MODE: passes::CompositeMode = passes::CompositeMode::Composite;
 
 pub struct Renderer {
     pub window: Arc<Window>,
@@ -29,7 +30,7 @@ impl Renderer {
 
         let gbuffer = GBuffer::new(&device, config.width, config.height, LAYERS);
         let geometry_pass = passes::Geometry::new(&device, &gbuffer);
-        let composite_pass = passes::Composite::new(&device, config.format, &gbuffer);
+        let composite_pass = passes::Composite::new(&device, config.format, &gbuffer, COMPOSITE_MODE);
 
         Self {
             window,
@@ -81,6 +82,6 @@ impl Renderer {
         self.gbuffer = GBuffer::new(&self.device, width, height, LAYERS);
         self.geometry_pass = passes::Geometry::new(&self.device, &self.gbuffer);
         self.composite_pass =
-            passes::Composite::new(&self.device, self.config.format, &self.gbuffer);
+            passes::Composite::new(&self.device, self.config.format, &self.gbuffer, COMPOSITE_MODE);
     }
 }

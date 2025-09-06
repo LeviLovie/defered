@@ -1,11 +1,12 @@
 use wgpu::{
+    include_wgsl,
+    util::{BufferInitDescriptor, DeviceExt},
     BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
     BindGroupLayoutEntry, BindingType, BlendState, BufferBindingType, BufferUsages, Color,
     ColorTargetState, ColorWrites, CommandEncoder, CompareFunction, DepthStencilState, Device,
     FragmentState, LoadOp, Operations, PipelineLayoutDescriptor, RenderPassColorAttachment,
     RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline,
-    RenderPipelineDescriptor, ShaderStages, StoreOp, VertexState, include_wgsl,
-    util::{BufferInitDescriptor, DeviceExt},
+    RenderPipelineDescriptor, ShaderStages, StoreOp, VertexState,
 };
 
 use crate::renderer::{gbuffer::GBuffer, object::Object};
@@ -109,7 +110,7 @@ impl Geometry {
                 view: color_view,
                 resolve_target: None,
                 ops: Operations {
-                    load: LoadOp::Clear(Color::BLACK),
+                    load: LoadOp::Clear(Color::TRANSPARENT),
                     store: StoreOp::Store,
                 },
                 depth_slice: None,
