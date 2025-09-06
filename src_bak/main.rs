@@ -51,33 +51,27 @@ impl ApplicationHandler for App {
             }
             WindowEvent::RedrawRequested => {
                 let objects = vec![
-                    vec![Object {
+                    Object {
                         pos: [0.0, 0.0],
                         size: [0.25, 0.25],
+                        layer: 0,
                         color: [0.0, 1.0, 0.0, 1.0],
-                    }],
-                    vec![
-                        Object {
-                            pos: [-0.5, 0.25],
-                            size: [0.25, 0.25],
-                            color: [1.0, 0.0, 0.0, 1.0],
-                        },
-                        Object {
-                            pos: [-0.5, -0.4],
-                            size: [0.25, 0.25],
-                            color: [0.0, 0.0, 1.0, 1.0],
-                        },
-                    ],
-                    vec![Object {
-                        pos: [-0.2, 0.6],
+                        _padding: [0; 3],
+                    },
+                    Object {
+                        pos: [-0.5, 0.25],
                         size: [0.25, 0.25],
-                        color: [1.0, 1.0, 1.0, 1.0],
-                    }],
-                    vec![Object {
-                        pos: [0.5, -0.4],
+                        layer: 0,
+                        color: [1.0, 0.0, 0.0, 1.0],
+                        _padding: [0; 3],
+                    },
+                    Object {
+                        pos: [-0.5, -0.4],
                         size: [0.25, 0.25],
-                        color: [1.0, 0.0, 1.0, 1.0],
-                    }],
+                        layer: 0,
+                        color: [0.0, 0.0, 1.0, 1.0],
+                        _padding: [0; 3],
+                    },
                 ];
 
                 if let Some(renderer) = &mut self.renderer {

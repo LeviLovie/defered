@@ -43,23 +43,15 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, objects: Vec<Vec<Object>>) {
+    pub fn render(&mut self, objects: Vec<Object>) {
         let frame = self.surface.get_current_texture().unwrap();
         let view = frame.texture.create_view(&Default::default());
 
         let mut encoder = self.device.create_command_encoder(&Default::default());
 
-        for (i, objects) in objects.iter().enumerate()
         {
-            if i as u32 >= LAYERS {
-                break;
-            }
-            if objects.is_empty() {
-                continue;
-            }
-
             self.geometry_pass
-                .execute(&mut encoder, &self.gbuffer, &objects, &self.device, i as u32);
+                .execute(&mut encoder, &self.gbuffer, &objects, &self.device, 3);
         }
         {
             self.composite_pass.execute(&mut encoder, &view);
