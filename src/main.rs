@@ -52,30 +52,30 @@ impl ApplicationHandler for App {
             WindowEvent::RedrawRequested => {
                 let objects = vec![
                     vec![Object {
-                        pos: [0.0, 0.0],
-                        size: [0.25, 0.25],
+                        pos: [100.0, 100.0],
+                        size: [250.0, 25.0],
                         color: [0.0, 1.0, 0.0, 1.0],
                     }],
                     vec![
                         Object {
-                            pos: [-0.5, 0.25],
-                            size: [0.25, 0.25],
+                            pos: [200.0, 200.0],
+                            size: [200.0, 200.0],
                             color: [1.0, 0.0, 0.0, 1.0],
                         },
                         Object {
-                            pos: [-0.5, -0.4],
-                            size: [0.25, 0.25],
+                            pos: [500.0, 400.0],
+                            size: [300.0, 500.0],
                             color: [0.0, 0.0, 1.0, 1.0],
                         },
                     ],
                     vec![Object {
-                        pos: [-0.2, 0.6],
-                        size: [0.25, 0.25],
+                        pos: [750.0, 600.0],
+                        size: [500.0, 50.0],
                         color: [1.0, 1.0, 1.0, 1.0],
                     }],
                     vec![Object {
-                        pos: [0.5, -0.4],
-                        size: [0.25, 0.25],
+                        pos: [700.0, 650.0],
+                        size: [20.0, 50.0],
                         color: [1.0, 0.0, 1.0, 1.0],
                     }],
                 ];

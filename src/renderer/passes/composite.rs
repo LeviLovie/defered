@@ -3,13 +3,15 @@ use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
     BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
     BindGroupLayoutEntry, BindingResource, BindingType, BlendState, Color, ColorTargetState,
-    ColorWrites, CommandEncoder, Device, FragmentState, LoadOp, MultisampleState, Operations,
+    ColorWrites, Device, FragmentState, LoadOp, MultisampleState, Operations,
     PipelineLayoutDescriptor, PrimitiveState, RenderPassColorAttachment, RenderPassDescriptor,
     RenderPipeline, RenderPipelineDescriptor, SamplerBindingType, SamplerDescriptor, ShaderStages,
     StoreOp, TextureFormat, TextureSampleType, TextureView, TextureViewDimension, VertexState,
 };
 
 use crate::renderer::gbuffer::GBuffer;
+
+use super::RenderPassData;
 
 #[allow(dead_code)]
 pub enum CompositeMode {
@@ -154,8 +156,8 @@ impl Composite {
         }
     }
 
-    pub fn execute(&self, encoder: &mut CommandEncoder, view: &TextureView) {
-        let mut rpass = encoder.begin_render_pass(&RenderPassDescriptor {
+    pub fn execute(&self, data: &mut RenderPassData, view: &TextureView) {
+        let mut rpass = data.encoder.begin_render_pass(&RenderPassDescriptor {
             label: Some("Composite Grid Pass"),
             color_attachments: &[Some(RenderPassColorAttachment {
                 view,

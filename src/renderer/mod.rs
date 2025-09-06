@@ -1,8 +1,10 @@
 mod device;
 mod gbuffer;
+pub mod camera;
 pub mod object;
 mod passes;
 
+use camera::Camera;
 use object::Object;
 use std::sync::Arc;
 use wgpu::{Device, Queue, Surface, SurfaceConfiguration};
@@ -12,6 +14,7 @@ use gbuffer::GBuffer;
 
 const LAYERS: u32 = 4;
 const COMPOSITE_MODE: passes::CompositeMode = passes::CompositeMode::Composite;
+// const COMPOSITE_MODE: passes::CompositeMode = passes::CompositeMode::Grid;
 
 pub struct Renderer {
     pub window: Arc<Window>,
@@ -46,9 +49,16 @@ impl Renderer {
 
     pub fn render(&mut self, objects: Vec<Vec<Object>>) {
         let frame = self.surface.get_current_texture().unwrap();
-        let view = frame.texture.create_view(&Default::default());
+        let surface_view = frame.texture.create_view(&Default::default());
 
         let mut encoder = self.device.create_command_encoder(&Default::default());
+
+        let mut rpd = passes::RenderPassData {
+            gbuffer: &self.gbuffer,
+            encoder: &mut encoder,
+            device: &self.device,
+            queue: &self.queue,
+        };
 
         for (i, objects) in objects.iter().enumerate()
         {
@@ -59,11 +69,13 @@ impl Renderer {
                 continue;
             }
 
+            let camera = Camera::new([0.0, 0.0], [800.0, 600.0]);
+
             self.geometry_pass
-                .execute(&mut encoder, &self.gbuffer, &objects, &self.device, i as u32);
+                .execute(&mut rpd, objects, i as u32, &camera);
         }
         {
-            self.composite_pass.execute(&mut encoder, &view);
+            self.composite_pass.execute(&mut rpd, &surface_view);
         }
 
         self.queue.submit(Some(encoder.finish()));

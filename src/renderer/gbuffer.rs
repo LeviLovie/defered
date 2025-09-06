@@ -3,6 +3,12 @@ use wgpu::{
     TextureView, TextureViewDescriptor, TextureViewDimension,
 };
 
+#[repr(C)]
+#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Frame {
+    pub size: [u32; 2],
+}
+
 pub struct GBuffer {
     pub color_texture: Texture,
     pub color_view: TextureView,
@@ -10,7 +16,7 @@ pub struct GBuffer {
     pub format: TextureFormat,
     pub depth_format: TextureFormat,
     pub layers: u32,
-    pub _size: (u32, u32),
+    pub size: (u32, u32),
 }
 
 impl GBuffer {
@@ -61,8 +67,14 @@ impl GBuffer {
             depth_texture,
             format,
             depth_format,
-            _size: (width, height),
+            size: (width, height),
             layers,
+        }
+    }
+
+    pub fn frame(&self) -> Frame {
+        Frame {
+            size: [self.size.0, self.size.1],
         }
     }
 
