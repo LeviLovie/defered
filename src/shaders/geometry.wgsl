@@ -39,8 +39,14 @@ fn vs_main(@builtin(vertex_index) vi: u32,
 
     let pixel_pos = obj.pos + quad * obj.size;
 
-    let ndc_x = pixel_pos.x / f32(frame.size.x) * 2.0 - 1.0;
-    let ndc_y = 1.0 - (pixel_pos.y / f32(frame.size.y)) * 2.0;
+    let cam_x = pixel_pos.x - camera.pos.x;
+    let cam_y = pixel_pos.y - camera.pos.y;
+
+    let norm_x = cam_x / camera.size.x;
+    let norm_y = cam_y / camera.size.y;
+
+    let ndc_x = norm_x * 2.0 - 1.0;
+    let ndc_y = 1.0 - norm_y * 2.0;
 
     var out: VSOut;
     out.pos = vec4<f32>(ndc_x, ndc_y, 0.0, 1.0);

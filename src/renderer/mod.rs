@@ -47,7 +47,7 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, objects: Vec<Vec<Object>>) {
+    pub fn render(&mut self, objects: Vec<Vec<Object>>, camera: &Camera) {
         let frame = self.surface.get_current_texture().unwrap();
         let surface_view = frame.texture.create_view(&Default::default());
 
@@ -68,8 +68,6 @@ impl Renderer {
             if objects.is_empty() {
                 continue;
             }
-
-            let camera = Camera::new([0.0, 0.0], [800.0, 600.0]);
 
             self.geometry_pass
                 .execute(&mut rpd, objects, i as u32, &camera);
