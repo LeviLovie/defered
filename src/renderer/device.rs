@@ -1,22 +1,23 @@
 use std::sync::Arc;
 
+use wgpu::{CompositeAlphaMode, Device, Instance, PresentMode, Queue, RequestAdapterOptions, Surface, SurfaceConfiguration, TextureUsages};
 use winit::window::Window;
 
 pub async fn init_wgpu(
     window: Arc<Window>,
 ) -> (
-    wgpu::Device,
-    wgpu::Queue,
-    wgpu::Surface<'static>,
-    wgpu::SurfaceConfiguration,
+    Device,
+    Queue,
+    Surface<'static>,
+    SurfaceConfiguration,
 ) {
     let size = window.inner_size();
 
-    let instance = wgpu::Instance::default();
+    let instance = Instance::default();
     let surface = instance.create_surface(window).unwrap();
 
     let adapter = instance
-        .request_adapter(&wgpu::RequestAdapterOptions {
+        .request_adapter(&RequestAdapterOptions {
             compatible_surface: Some(&surface),
             ..Default::default()
         })
@@ -25,13 +26,13 @@ pub async fn init_wgpu(
 
     let (device, queue) = adapter.request_device(&Default::default()).await.unwrap();
 
-    let config = wgpu::SurfaceConfiguration {
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+    let config = SurfaceConfiguration {
+        usage: TextureUsages::RENDER_ATTACHMENT,
         format: surface.get_capabilities(&adapter).formats[0],
         width: size.width,
         height: size.height,
-        present_mode: wgpu::PresentMode::Fifo,
-        alpha_mode: wgpu::CompositeAlphaMode::Auto,
+        present_mode: PresentMode::Fifo,
+        alpha_mode: CompositeAlphaMode::Auto,
         view_formats: vec![],
         desired_maximum_frame_latency: 2,
     };

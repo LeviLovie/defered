@@ -2,7 +2,7 @@ mod renderer;
 
 use std::sync::Arc;
 
-use renderer::{Renderer, object::Object};
+use renderer::{object::Object, Renderer};
 use winit::{
     application::ApplicationHandler,
     event::*,
@@ -52,18 +52,25 @@ impl ApplicationHandler for App {
             WindowEvent::RedrawRequested => {
                 let objects = vec![
                     Object {
-                        pos: [10.0, 10.0],
-                        size: [20.0, 20.0],
+                        pos: [0.0, 0.0],
+                        size: [0.25, 0.25],
                         layer: 0,
-                        obj_type: 0,
-                        special_data: [0; 4],
+                        color: [0.0, 1.0, 0.0, 1.0],
+                        _padding: [0; 3],
                     },
                     Object {
-                        pos: [15.0, 15.0],
-                        size: [20.0, 20.0],
-                        layer: 1,
-                        obj_type: 1,
-                        special_data: [0; 4],
+                        pos: [-0.5, 0.25],
+                        size: [0.25, 0.25],
+                        layer: 0,
+                        color: [1.0, 0.0, 0.0, 1.0],
+                        _padding: [0; 3],
+                    },
+                    Object {
+                        pos: [-0.5, -0.4],
+                        size: [0.25, 0.25],
+                        layer: 0,
+                        color: [0.0, 0.0, 1.0, 1.0],
+                        _padding: [0; 3],
                     },
                 ];
 
