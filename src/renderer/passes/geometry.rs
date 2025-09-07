@@ -1,7 +1,7 @@
 use wgpu::{
     include_wgsl,
     util::{BufferInitDescriptor, DeviceExt},
-    BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
+    BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
     BindGroupLayoutEntry, BindingType, BlendState, Buffer, BufferBindingType, BufferUsages, Color,
     ColorTargetState, ColorWrites, CompareFunction, DepthStencilState, Device, FragmentState,
     LoadOp, Operations, PipelineLayoutDescriptor, RenderPassColorAttachment,
@@ -13,12 +13,20 @@ use crate::renderer::{camera::Camera, gbuffer::GBuffer, object::Object};
 
 use super::RenderPassData;
 
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Layer {
+    z: f32,
+    _pad: [u32; 3],
+}
+
 pub struct Geometry {
     pipeline: RenderPipeline,
     objects_bgl: BindGroupLayout,
-    params_bg: BindGroup,
+    params_bgl: BindGroupLayout,
     frame_b: Buffer,
     camera_b: Buffer,
+    layer_b: Buffer,
 }
 
 impl Geometry {
@@ -53,6 +61,16 @@ impl Geometry {
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         });
 
+        let layer = Layer {
+            z: 0.0,
+            _pad: [0; 3],
+        };
+        let layer_b = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("Layer B"),
+            contents: bytemuck::cast_slice(&[layer]),
+            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+        });
+
         let params_bgl = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: Some("Params BGL"),
             entries: &[
@@ -76,19 +94,15 @@ impl Geometry {
                     },
                     count: None,
                 },
-            ],
-        });
-        let params_bg = device.create_bind_group(&BindGroupDescriptor {
-            label: Some("Params BG"),
-            layout: &params_bgl,
-            entries: &[
-                BindGroupEntry {
-                    binding: 0,
-                    resource: frame_b.as_entire_binding(),
-                },
-                BindGroupEntry {
-                    binding: 1,
-                    resource: camera_b.as_entire_binding(),
+                BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: ShaderStages::VERTEX,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
                 },
             ],
         });
@@ -134,9 +148,10 @@ impl Geometry {
         Self {
             pipeline,
             objects_bgl,
-            params_bg,
+            params_bgl,
             frame_b,
             camera_b,
+            layer_b,
         }
     }
 
@@ -145,13 +160,53 @@ impl Geometry {
         data: &mut RenderPassData,
         objects: &[Object],
         layer: u32,
+        layer_z: f32,
         camera: &Camera,
     ) {
         data.queue
             .write_buffer(&self.camera_b, 0, bytemuck::cast_slice(&[*camera]));
-        let frame = data.gbuffer.frame();
-        data.queue
-            .write_buffer(&self.frame_b, 0, bytemuck::cast_slice(&[frame]));
+        data.queue.write_buffer(
+            &self.frame_b,
+            0,
+            bytemuck::cast_slice(&[data.gbuffer.frame()]),
+        );
+
+        let layer_b = data.device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("Layer B"),
+            contents: bytemuck::cast_slice(&[Layer {
+                z: layer_z,
+                _pad: [0; 3],
+            }]),
+            usage: BufferUsages::UNIFORM,
+        });
+
+        data.queue.write_buffer(
+            &self.layer_b,
+            0,
+            bytemuck::cast_slice(&[Layer {
+                z: layer_z,
+                _pad: [0; 3],
+            }]),
+        );
+
+        let params_bg = data.device.create_bind_group(&BindGroupDescriptor {
+            label: Some("Params BG"),
+            layout: &self.params_bgl,
+            entries: &[
+                BindGroupEntry {
+                    binding: 0,
+                    resource: self.frame_b.as_entire_binding(),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: self.camera_b.as_entire_binding(),
+                },
+                BindGroupEntry {
+                    binding: 2,
+                    resource: layer_b.as_entire_binding(),
+                },
+            ],
+        });
 
         let objects_b = data.device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Object Buffer"),
@@ -194,7 +249,7 @@ impl Geometry {
 
         rpass.set_pipeline(&self.pipeline);
         rpass.set_bind_group(0, &objects_bg, &[]);
-        rpass.set_bind_group(1, &self.params_bg, &[]);
+        rpass.set_bind_group(1, &params_bg, &[]);
         rpass.draw(0..6, 0..objects.len() as u32);
     }
 }

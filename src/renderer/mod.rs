@@ -47,7 +47,7 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, objects: Vec<Vec<Object>>, camera: &Camera) {
+    pub fn render(&mut self, objects: Vec<(f32, Vec<Object>)>, camera: &Camera) {
         let frame = self.surface.get_current_texture().unwrap();
         let surface_view = frame.texture.create_view(&Default::default());
 
@@ -60,7 +60,7 @@ impl Renderer {
             queue: &self.queue,
         };
 
-        for (i, objects) in objects.iter().enumerate()
+        for (i, (z, objects)) in objects.iter().enumerate()
         {
             if i as u32 >= LAYERS {
                 break;
@@ -70,7 +70,7 @@ impl Renderer {
             }
 
             self.geometry_pass
-                .execute(&mut rpd, objects, i as u32, &camera);
+                .execute(&mut rpd, objects, i as u32, *z, &camera);
         }
         {
             self.composite_pass.execute(&mut rpd, &surface_view);

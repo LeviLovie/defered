@@ -27,7 +27,7 @@ impl Default for App {
     fn default() -> Self {
         Self {
             renderer: None,
-            camera: Camera::new([0.0, 0.0], [800.0, 600.0]),
+            camera: Camera::new([0.0, 0.0], [800.0, 600.0], 50.0),
             last_frame: Instant::now(),
             frame_time: Duration::from_secs_f32(1.0 / TARGET_FPS),
         }
@@ -106,33 +106,38 @@ impl ApplicationHandler for App {
             }
             WindowEvent::RedrawRequested => {
                 let objects = vec![
-                    vec![Object {
-                        pos: [100.0, 100.0],
-                        size: [250.0, 25.0],
-                        color: [0.0, 1.0, 0.0, 1.0],
-                    }],
-                    vec![
-                        Object {
-                            pos: [200.0, 200.0],
-                            size: [200.0, 200.0],
+                    (
+                        -25.0,
+                        vec![Object {
+                            pos: [350.0, 100.0],
+                            size: [100.0, 50.0],
                             color: [1.0, 0.0, 0.0, 1.0],
-                        },
-                        Object {
-                            pos: [500.0, 400.0],
-                            size: [300.0, 500.0],
+                        }],
+                    ),
+                    (
+                        -10.0,
+                        vec![Object {
+                            pos: [350.0, 150.0],
+                            size: [100.0, 50.0],
+                            color: [0.0, 1.0, 0.0, 1.0],
+                        }],
+                    ),
+                    (
+                        0.0,
+                        vec![Object {
+                            pos: [350.0, 200.0],
+                            size: [100.0, 50.0],
+                            color: [1.0, 1.0, 1.0, 1.0],
+                        }],
+                    ),
+                    (
+                        10.0,
+                        vec![Object {
+                            pos: [350.0, 250.0],
+                            size: [100.0, 50.0],
                             color: [0.0, 0.0, 1.0, 1.0],
-                        },
-                    ],
-                    vec![Object {
-                        pos: [750.0, 600.0],
-                        size: [500.0, 50.0],
-                        color: [1.0, 1.0, 1.0, 1.0],
-                    }],
-                    vec![Object {
-                        pos: [700.0, 650.0],
-                        size: [20.0, 50.0],
-                        color: [1.0, 0.0, 1.0, 1.0],
-                    }],
+                        }],
+                    ),
                 ];
 
                 if let Some(renderer) = &mut self.renderer {
