@@ -6,9 +6,10 @@ pub use geometry::Geometry;
 
 use wgpu::{CommandEncoder, Device, Queue};
 
-use super::gbuffer::GBuffer;
+use super::{ecs::TextureCache, gbuffer::GBuffer};
 
 pub struct RenderPassData<'a> {
+    pub texture_cache: &'a mut TextureCache,
     pub gbuffer: &'a GBuffer,
     pub encoder: &'a mut CommandEncoder,
     pub device: &'a Device,

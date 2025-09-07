@@ -1,10 +1,12 @@
-mod device;
-mod gbuffer;
 pub mod camera;
+mod device;
+pub mod ecs;
+mod gbuffer;
 pub mod object;
 mod passes;
 
 use camera::Camera;
+use ecs::TextureCache;
 use object::Object;
 use std::sync::Arc;
 use wgpu::{Device, Queue, Surface, SurfaceConfiguration};
@@ -25,15 +27,22 @@ pub struct Renderer {
     gbuffer: GBuffer,
     geometry_pass: passes::Geometry,
     composite_pass: passes::Composite,
+    texture_cache: TextureCache,
+    textures_updated: bool,
+    layer_zs: Vec<f32>,
+    layers: Vec<Vec<Object>>,
 }
 
 impl Renderer {
     pub async fn new(window: Arc<Window>) -> Self {
         let (device, queue, surface, config) = device::init_wgpu(window.clone()).await;
 
+        let texture_cache = TextureCache::new(&device);
+
         let gbuffer = GBuffer::new(&device, config.width, config.height, LAYERS);
-        let geometry_pass = passes::Geometry::new(&device, &gbuffer);
-        let composite_pass = passes::Composite::new(&device, config.format, &gbuffer, COMPOSITE_MODE);
+        let geometry_pass = passes::Geometry::new(&device, &gbuffer, &texture_cache);
+        let composite_pass =
+            passes::Composite::new(&device, config.format, &gbuffer, COMPOSITE_MODE);
 
         Self {
             window,
@@ -44,39 +53,67 @@ impl Renderer {
             gbuffer,
             geometry_pass,
             composite_pass,
+            texture_cache,
+            textures_updated: false,
+            layer_zs: vec![-20.0, -10.0, 0.0, 10.0],
+            layers: vec![vec![], vec![], vec![], vec![]],
         }
     }
 
-    pub fn render(&mut self, objects: Vec<(f32, Vec<Object>)>, camera: &Camera) {
-        let frame = self.surface.get_current_texture().unwrap();
+    pub fn clear_layers(&mut self) {
+        self.layers.iter_mut().for_each(|layer| layer.clear());
+    }
+
+    pub fn push_object(&mut self, layer: u32, object: Object) {
+        match self.layers.get_mut(layer as usize) {
+            Some(objects) => {
+                objects.push(object);
+            }
+            None => {
+                println!("Layer {} does not exist", layer);
+            }
+        }
+    }
+
+    pub fn render(&mut self, camera: &Camera) {
+        let frame = match self.surface.get_current_texture() {
+            Ok(frame) => frame,
+            Err(wgpu::SurfaceError::Lost) => {
+                self.resize(self.config.width, self.config.height);
+                return;
+            }
+            Err(wgpu::SurfaceError::OutOfMemory) => std::process::exit(1),
+            Err(_) => return,
+        };
         let surface_view = frame.texture.create_view(&Default::default());
 
         let mut encoder = self.device.create_command_encoder(&Default::default());
 
+        if self.textures_updated {
+            self.texture_cache.build_batches(&self.device, &mut self.queue);
+        }
+
         let mut rpd = passes::RenderPassData {
+            texture_cache: &mut self.texture_cache,
             gbuffer: &self.gbuffer,
             encoder: &mut encoder,
             device: &self.device,
             queue: &self.queue,
         };
 
-        for (i, (z, objects)) in objects.iter().enumerate()
-        {
-            if i as u32 >= LAYERS {
-                break;
-            }
+        for (i, objects) in self.layers.iter().enumerate().take(LAYERS as usize) {
             if objects.is_empty() {
                 continue;
             }
-
+            let z = self.layer_zs.get(i).cloned().unwrap_or(0.0);
             self.geometry_pass
-                .execute(&mut rpd, objects, i as u32, *z, &camera);
+                .execute(&mut rpd, objects, i as u32, z, camera);
         }
-        {
-            self.composite_pass.execute(&mut rpd, &surface_view);
-        }
+
+        self.composite_pass.execute(&mut rpd, &surface_view);
 
         self.queue.submit(Some(encoder.finish()));
+
         frame.present();
     }
 
@@ -90,8 +127,13 @@ impl Renderer {
         self.surface.configure(&self.device, &self.config);
 
         self.gbuffer = GBuffer::new(&self.device, width, height, LAYERS);
-        self.geometry_pass = passes::Geometry::new(&self.device, &self.gbuffer);
-        self.composite_pass =
-            passes::Composite::new(&self.device, self.config.format, &self.gbuffer, COMPOSITE_MODE);
+        self.geometry_pass =
+            passes::Geometry::new(&self.device, &self.gbuffer, &self.texture_cache);
+        self.composite_pass = passes::Composite::new(
+            &self.device,
+            self.config.format,
+            &self.gbuffer,
+            COMPOSITE_MODE,
+        );
     }
 }
