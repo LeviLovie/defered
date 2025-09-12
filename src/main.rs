@@ -1,4 +1,4 @@
-mod renderer;
+use deferred::*;
 
 use std::{
     sync::Arc,
@@ -36,7 +36,7 @@ impl Default for App {
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let window = Window::default_attributes().with_title("Defered rendering");
+        let window = Window::default_attributes().with_title("Deferred rendering");
 
         let window = Arc::new(event_loop.create_window(window).unwrap());
 
